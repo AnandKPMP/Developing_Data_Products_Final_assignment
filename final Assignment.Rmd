@@ -1,0 +1,202 @@
+---
+title: "Final Shiny Project"
+author: "Anand Kumar Subramaniam"
+date: "April 23, 2017"
+output: html_document
+runtime: shiny
+---
+## **Introduction**
+
+  This assignment is part of Developing Data Products course in Course era. 
+  The Assignment is to create a shiny application. The following key features of Shiny 
+  application are explored in this exercise.
+  1. SelectInput box
+  2. Adding a image to your application
+  3. Using HTML tags like Table
+  4. Using Plotly graphs and Ploty specific shiny render funtions
+  5. TabPanels
+  
+### **Dataset Used**
+
+  The original data set from <https://catalog.data.gov/dataset/crimes-2001-to-present-398a4> 
+  reflects reported incidents of crime (with the exception of murders where data exists 
+  for each victim) that occurred in the City of Chicago from 2001 to present, minus the most
+  recent seven days. Data is extracted from the Chicago Police Department's CLEAR (Citizen Law
+  Enforcement Analysis and Reporting) system. In order to protect the privacy of crime victims,
+  addresses are shown at the block level only and specific locations are not identified.
+
+### **User input**
+
+    The application segments the crime data based on crime type and crime location and displays 
+    the trend in chicago for the last 18 years. As a end user, you can visualize the trends across
+    various types. If the user wishes to drill down on last 5 years, he/she can  select the time
+    frame from the input drop-down and hit the **process** button. The plots are refreshed for 
+    the selected time period. *Please not the change in x-axis as the result of the time frame selected*
+    
+
+```{r echo=FALSE}
+    library(shiny)
+    library(plotly)
+    library(dplyr)
+    library(RColorBrewer)
+```
+
+### **client code**
+
+    The client has the image, the header, the selectinput drop-down, the **submit** button and **tab** controls.
+    
+```{r}    
+    ui <- fluidPage(title = "Chicago City Crime",
+            tags$table( tags$tr(tags$td(img(src= "CHICAGOPOLICE.jpg")),tags$td(h1("City of Chicago Crime Analysis"))),
+                      tags$tr(tags$td( selectInput(inputId = "YearSel",
+                                                   label = " Select the Time period for analysis",
+                                                   choices = c("All years" = "0", "Last 5 years" ="1", "Last 10 years"="2", "Last 15 years"="3"),
+                                                   multiple = F)))),
+            submitButton( "Process"),
+            
+            tabsetPanel(              
+                        tabPanel(title = "Top Ten Crime type",
+                                 plotlyOutput("TopTenCrimesType")
+                        ),
+                        tabPanel(title = "Top Ten Crime locations",
+                                 plotlyOutput("TopTenCrimesLocation")
+                         )
+             )
+    )
+    
+```
+
+### **Server side code**
+    
+    The server side, handles reading the data from the csv file, processing and rendering them into plots.
+    
+```{r}
+    server <- function(input, output) {
+       
+        m <- list(
+            l = 50,
+            r = 50,
+            b = 100,
+            t = 100,
+            pad = 4
+        )
+        
+       Time_period <- reactive({
+           input$YearSel
+           }) 
+       
+        output$TopTenCrimesType <- renderPlotly({
+           plot_data <- read.csv(".\\Top10Crimes.csv"
+                                 ,stringsAsFactors = TRUE
+                                 , header = TRUE)
+           
+           heading <- " City of Chicago Top 10 crimes by type in all years"
+           if(Time_period() == "1") {
+               plot_data <- filter(plot_data,Year >= max(Year) - 5 )
+               heading <- " City of Chicago Top 10 crimes by type in last 5 years"
+           }
+
+           if(Time_period() == "2") {
+               plot_data <- filter(plot_data,Year >= max(Year) - 10 )
+               heading <- "City of Chicago Top 10 crimes by type in last 10 years"
+           }
+
+           if(Time_period() == "3"){
+               plot_data <- filter(plot_data,Year >= max(Year) - 15 )
+               heading <- " City of Chicago Top 10 crimes by type in last 15 years"
+            }
+           
+       
+                  # use plot to plot.
+              plot_ly(data = plot_data,
+                           x = ~Year,
+                           y = ~count,
+                           color = ~Primary.Type,
+                           size = ~size,
+                           colors = brewer.pal(10, "Paired"), 
+                           type = 'scatter',
+                           mode = 'markers',
+                           width = 800,
+                           height = 600,
+                           marker = list( symbol = 'circle',
+                                          sizemode = 'diameter',
+                                          line = list( width = 2,
+                                                       color = '#FFFFFF')),
+                           text = ~paste('Year:', Year, '<br>Crime Type:', Primary.Type, '<br> Count:', count)
+              )   %>%
+                  layout( title =  heading 
+                           , autosize = F
+                            , margin = m
+                            ,xaxis = list(title = 'Time Series in years',
+                            range = c(min(plot_data$Year)-2, max(plot_data$Year)+2)
+                          ),
+                          yaxis = list(title = 'Crime count',
+                                       range = c(min(plot_data$count), max(plot_data$count))
+                          )
+                  )
+         
+      })
+       
+      output$TopTenCrimesLocation <- renderPlotly({
+        Crime_byLocation_data <-read.csv(".\\Crime_by_Location.csv"
+                             ,stringsAsFactors = TRUE
+                             , header = TRUE)  
+        
+        Crime_byLocation_data$size <- sqrt(Crime_byLocation_data$count * 2.666051223553066e-05 )
+        
+        m <- list(
+            l = 50,
+            r = 50,
+            b = 100,
+            t = 100,
+            pad = 4
+        )
+        heading <- " City of Chicago Top 10 crimes by location in all years"
+        if(Time_period() == "1") {
+            Crime_byLocation_data <- filter(Crime_byLocation_data,Year >= max(Year) - 5 )
+            heading <- " City of Chicago Top 10 crimes by location in last 5 years"
+        }
+        
+        if(Time_period() == "2") {
+            Crime_byLocation_data <- filter(Crime_byLocation_data,Year >= max(Year) - 10 )
+            heading <- "City of Chicago Top 10 crimes by location in last 10 years"
+        }
+        
+        if(Time_period() == "3"){
+            Crime_byLocation_data <- filter(Crime_byLocation_data,Year >= max(Year) - 15 )
+            heading <- " City of Chicago Top 10 crimes by location in last 15 years"
+        }
+        
+            # use plot to plot.
+        plot_ly(data = Crime_byLocation_data,
+                x = ~Year,
+                y = ~count,
+                color = ~Location.Description,
+                size = ~size,
+                colors = brewer.pal(10, "Paired"), 
+                type = 'scatter',
+                mode = 'markers',
+                width = 800,
+                height = 600,
+                marker = list( symbol = 'circle',
+                               sizemode = 'diameter',
+                               line = list( width = 2,
+                                            color = '#FFFFFF')),
+                text = ~paste('Year:', Year, '<br>Crime Type:', Location.Description, '<br> Count:', count)
+        )   %>%
+            layout( title = heading,autosize = F, margin = m, xaxis = list(title = 'Time Series in years',
+                                range = c(min(Crime_byLocation_data$Year)-2, max(Crime_byLocation_data$Year)+2)
+            ),
+            yaxis = list(title = 'Crime count',
+                         range = c(min(Crime_byLocation_data$count), max(Crime_byLocation_data$count))
+            )
+            )
+      })
+    }
+    
+    shinyApp(server = server, ui = ui)
+```
+
+### **Conclusion**
+
+     The assignment is complete with input, output, reactive functionalities. Now the user has the ability to drill-down and visualize the crime data as needed.

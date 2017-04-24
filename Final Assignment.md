@@ -1,0 +1,34 @@
+Final Assignment
+========================================================
+author: Anand Kumar Subramaniam
+date: 23-Apr-2017
+autosize: true
+
+Introduction
+========================================================
+    
+This assignment is part of Developing Data Products course in Courseera. 
+The Assignment is to create a shiny application. 
+
+The following key features of **Shiny application** were explored in this exercise.
+-SelectInput box
+-Adding a image to your application
+-Using HTML tags like Table
+-Using Plotly graphs and Ploty specific shiny render funtions
+-TabPanels
+
+User Inputs expected
+========================================================
+    The application segments the crime data based on crime type and crime location and displays the trend in chicago for the last 18 years. As a end user, you can visualize the trends across various types. 
+    If the user wishes to drill down on last 5 years, he/she can  select the time frame from the input drop-down and hit the **process** button. The plots are refreshed for the selected time period. *Please not the change in x-axis as the result of the time frame selected*
+
+
+Client  and Server side code
+========================================================
+- The client has the image, the header, the selectinput drop-down, the **submit** button and **tab** controls.
+
+- The server side, handles reading the data from the csv file, processing and rendering them into plots.
+
+Conclusion
+========================================================
+    The assignment is complete with input, output, reactive functionalities. Now the user has the ability to drill-down and visualize the crime data as needed.
